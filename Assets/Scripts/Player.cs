@@ -19,7 +19,7 @@ public class Player : MonoBehaviour
 
     public float hitSeconds = 1f;
 
-    
+
 
     /*
     bool idleState = false;
@@ -54,11 +54,10 @@ public class Player : MonoBehaviour
             float ver = Input.GetAxis("Vertical");
             float hor = Input.GetAxis("Horizontal");
 
-
-
             if (ver != 0 || hor != 0)
             {
 
+                state = State.Move;
                 animator.SetBool("isMove", true);
 
 
@@ -66,6 +65,16 @@ public class Player : MonoBehaviour
 
                 moveVector.z = ver * moveSpeed * Time.deltaTime;
                 moveVector.x = hor * moveSpeed * Time.deltaTime;
+
+                /*  There could be a resolution for the elevation not changing issue in the example code below.
+                using Mapbox.Unity.Map;
+
+                AbstractMap map;
+                Vector3 vector;
+
+                // the Vector describing the Point in Unity units.
+                vector = map.GeoToWorldPosition(Vector2d latitudeLongitude, bool queryHeight = true);
+                */
 
                 transform.position = transform.position + moveVector;
 
@@ -79,6 +88,7 @@ public class Player : MonoBehaviour
             }
             else
             {
+                state = State.Idle;
                 animator.SetBool("isMove", false);
             }
         }
@@ -96,7 +106,7 @@ public class Player : MonoBehaviour
 
         StartCoroutine(CoAttack());
 
-        
+
     }
 
     IEnumerator CoAttack()
@@ -116,21 +126,22 @@ public class Player : MonoBehaviour
 
                     //            GetComponent<Animator>().SetTrigger("isAttack");
                     animator.SetTrigger("isAttack");
-                    // ÀÏÁ¤½Ã°£µ¿¾È ´ë±âÇÑ´Ù.
+
+                    // Ã€ÃÃÂ¤Â½ÃƒÂ°Â£ÂµÂ¿Â¾Ãˆ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™.
                     yield return new WaitForSeconds(attackSeconds);
-                    // yield return () null > 1 ÇÁ·¹ÀÓ ´ë±âÇÑ´Ù
-                    // new WaitForSeconds Æ¯Á¤ ÃÊ¸¦ ´ë±âÇÑ´Ù.
+                    // yield return () null > 1 Ã‡ÃÂ·Â¹Ã€Ã“ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™
+                    // new WaitForSeconds Ã†Â¯ÃÂ¤ ÃƒÃŠÂ¸Â¦ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™.
 
                     state = State.Idle;
                 }
             }
         }
-               
+
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if(collision.gameObject.tag == "ZombieHand")
+        if (collision.gameObject.tag == "ZombieHand")
         {
             Hit();
         }
@@ -145,15 +156,15 @@ public class Player : MonoBehaviour
     IEnumerator CoHit()
     {
 
-        if(state != State.Hit || state != State.Death)  // check this 
+        if (state != State.Hit || state != State.Death)  // check this 
         {
             state = State.Hit;
 
-            // HP°¡ ±ïÀÎ´Ù. hp = hp - »ó´ë¹æÀÇ °ø°İ·Â
+            // HPÂ°Â¡ Â±Ã¯Ã€ÃÂ´Ã™. hp = hp - Â»Ã³Â´Ã«Â¹Ã¦Ã€Ã‡ Â°Ã¸Â°ÃÂ·Ã‚
             HP = HP - 10;
-            // ¾Ö´Ï¸ŞÀÌ¼Ç Ãâ·Â (ÇÇ°İ)
+            // Â¾Ã–Â´ÃÂ¸ÃÃ€ÃŒÂ¼Ã‡ ÃƒÃ¢Â·Ã‚ (Ã‡Ã‡Â°Ã)
 
-            // ¸¸¾à HP°¡ 0 ÀÌÇÏ¶ó¸é Á×¾î¾ßÇÑ´Ù.
+            // Â¸Â¸Â¾Ã  HPÂ°Â¡ 0 Ã€ÃŒÃ‡ÃÂ¶Ã³Â¸Ã© ÃÃ—Â¾Ã®Â¾ÃŸÃ‡Ã‘Â´Ã™.
             if (HP <= 0)
             {
                 Death();
@@ -164,10 +175,10 @@ public class Player : MonoBehaviour
 
                 yield return new WaitForSeconds(hitSeconds);
 
-               
+
                 state = State.Idle;
             }
-        } 
+        }
 
 
     }
