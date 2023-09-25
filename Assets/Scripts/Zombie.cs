@@ -1,19 +1,32 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.SymbolStore;
 using UnityEngine;
-using UnityEngine.AI;
+using UnityEngine.UIElements;
 
-public class Zombie : MonoBehaviour
+
+
+public class Player : MonoBehaviour
 {
+
+    public float moveSpeed = 1;
+
     Animator animator = null;
     public GameObject playerObject = null;
-
-    // playerObject = GameObject.FindGameObjectWithTag("Player");
-    public float checkDistance = 5f;
-    public float attackDistance = 1.0f;
+    GameObject manager = null;
     public float HP = 100f;
-    public float hitSeconds = 1f;
     public float attackSeconds = 1f;
+
+    public float hitSeconds = 1f;
+
+
+
+    /*
+    bool idleState = false;
+    bool attackState = false;
+    string state = "idle";
+     */
+
 
     State state = State.Idle;
 
@@ -27,95 +40,113 @@ public class Zombie : MonoBehaviour
     {
         animator = GetComponent<Animator>();
     }
+    private void Update()
+    {
+        Move();
+        Attack();
+    }
 
     // Update is called once per frame
-    void Update()
+    private void Move()
     {
-        Idle();
-    }
-
-    // ´ë±â, Ãß°İ(ÀÌµ¿), °ø°İ, ÇÇ°İ, Á×À½
-    void Idle()
-    {
-        animator.SetBool("isMove", false);
-
-        Vector3 playerVector = playerObject.transform.position;
-        Vector3 zombieVector = transform.position;
-        float playerZombieDistance = Vector3.Distance(playerVector, zombieVector);
-        
-        // distance between zombie and player is smaller than certain threashold.
-        if(playerZombieDistance < attackDistance)
-        {
-            Attack();
-        }
-        else if (playerZombieDistance < checkDistance)
-        {
-            // Ãß°İÇÑ´Ù
-            Move();
-        }
-        else // ´Ù½Ã °É¸®°¡ ¸Ö¾îÁ³´Ù¸é °Å¸®°¡ ¸Ö¾ú´Ù¸é set move to false
-        {
-            animator.SetBool("isMove", false);
-        }
-    }
-
-    void Move()
-    {
-        // move only when idle
         if (state == State.Idle || state == State.Move)
         {
-            GetComponent<NavMeshAgent>().enabled = true;
-            state = State.Move;
-            animator.SetBool("isMove", true);
-            GetComponent<NavMeshAgent>().destination = playerObject.transform.position;
+            float ver = Input.GetAxis("Vertical");
+            float hor = Input.GetAxis("Horizontal");
+
+            if (ver != 0 || hor != 0)
+            {
+
+                state = State.Move;
+                animator.SetBool("isMove", true);
+
+
+                Vector3 moveVector = new Vector3();
+
+                moveVector.z = ver * moveSpeed * Time.deltaTime;
+                moveVector.x = hor * moveSpeed * Time.deltaTime;
+
+                /*  There could be a resolution for the elevation not changing issue in the example code below.
+                using Mapbox.Unity.Map;
+
+                AbstractMap map;
+                Vector3 vector;
+
+                // the Vector describing the Point in Unity units.
+                vector = map.GeoToWorldPosition(Vector2d latitudeLongitude, bool queryHeight = true);
+                */
+
+                transform.position = transform.position + moveVector;
+
+                Vector3 checkVector = new Vector3();
+                if (moveVector != checkVector)
+                {
+                    transform.forward = moveVector;
+                }
+
+                //    transform.position += moveVector;
+            }
+            else
+            {
+                state = State.Idle;
+                animator.SetBool("isMove", false);
+            }
         }
+
+
+
+
+
+
+
     }
 
-    private void Attack()
+    void Attack()
     {
-        animator.SetTrigger("isAttack");        
-    }
 
+        StartCoroutine(CoAttack());
+
+
+    }
 
     IEnumerator CoAttack()
     {
 
         if (state == State.Idle || state == State.Move)
         {
-            
-            // stop movement by turnning off the components.
-            GetComponent<NavMeshAgent>().enabled = false;
-            
+            bool att = Input.GetButtonDown("Fire1");
+
+            if (state != State.Attack)
+            {
+                if (att == true)
+                {
                     state = State.Attack;
 
                     animator.SetBool("isMove", false);
 
                     //            GetComponent<Animator>().SetTrigger("isAttack");
                     animator.SetTrigger("isAttack");
-                    // ÀÏÁ¤½Ã°£µ¿¾È ´ë±âÇÑ´Ù.
+
+                    // Ã€ÃÃÂ¤Â½ÃƒÂ°Â£ÂµÂ¿Â¾Ãˆ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™.
                     yield return new WaitForSeconds(attackSeconds);
-                    // yield return () null > 1 ÇÁ·¹ÀÓ ´ë±âÇÑ´Ù
-                    // new WaitForSeconds Æ¯Á¤ ÃÊ¸¦ ´ë±âÇÑ´Ù.
+                    // yield return () null > 1 Ã‡ÃÂ·Â¹Ã€Ã“ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™
+                    // new WaitForSeconds Ã†Â¯ÃÂ¤ ÃƒÃŠÂ¸Â¦ Â´Ã«Â±Ã¢Ã‡Ã‘Â´Ã™.
 
                     state = State.Idle;
-
+                }
+            }
         }
 
     }
 
-
-    private void OnCollisionEnter(Collision collision)  
+    private void OnCollisionEnter(Collision collision)
     {
-        // HP°¡ ±ïÀÎ´Ù. hp = hp - »ó´ë¹æÀÇ °ø°İ·Â
-        // ¾Ö´Ï¸ŞÀÌ¼Ç Ãâ·Â (ÇÇ°İ)
-        //collision.gameObject.  ---  getComponent on added components
-        if(collision.gameObject.tag == "PlayerSword")
+        if (collision.gameObject.tag == "ZombieHand")
         {
             Hit();
         }
-        
-        // ¸¸¾à HP°¡ 0 ÀÌÇÏ¶ó¸é Á×¾î¾ßÇÑ´Ù.
     }
+
 
     private void Hit()
     {
@@ -125,15 +156,15 @@ public class Zombie : MonoBehaviour
     IEnumerator CoHit()
     {
 
-        if (state != State.Hit && state != State.Death)  // check this 
+        if (state != State.Hit || state != State.Death)  // check this 
         {
             state = State.Hit;
 
-            // HP°¡ ±ïÀÎ´Ù. hp = hp - »ó´ë¹æÀÇ °ø°İ·Â
+            // HPÂ°Â¡ Â±Ã¯Ã€ÃÂ´Ã™. hp = hp - Â»Ã³Â´Ã«Â¹Ã¦Ã€Ã‡ Â°Ã¸Â°ÃÂ·Ã‚
             HP = HP - 10;
-            // ¾Ö´Ï¸ŞÀÌ¼Ç Ãâ·Â (ÇÇ°İ)
+            // Â¾Ã–Â´ÃÂ¸ÃÃ€ÃŒÂ¼Ã‡ ÃƒÃ¢Â·Ã‚ (Ã‡Ã‡Â°Ã)
 
-            // ¸¸¾à HP°¡ 0 ÀÌÇÏ¶ó¸é Á×¾î¾ßÇÑ´Ù.
+            // Â¸Â¸Â¾Ã  HPÂ°Â¡ 0 Ã€ÃŒÃ‡ÃÂ¶Ã³Â¸Ã© ÃÃ—Â¾Ã®Â¾ÃŸÃ‡Ã‘Â´Ã™.
             if (HP <= 0)
             {
                 Death();
@@ -152,17 +183,21 @@ public class Zombie : MonoBehaviour
 
     }
 
-
     private void Death()
     {
-        animator.SetBool("isDeath", true);
-        state = State.Death;
-
-    
-
-
+        StartCoroutine(CoDeath());
 
     }
 
+    IEnumerator CoDeath()
+    {
+        state = State.Death;
+        animator.SetBool("isDeath", true);
 
+        // display game over after certain time
+        yield return new WaitForSeconds(2);
+
+        // playerObject = GameObject.FindGameObjectWithTag("Player");
+        manager.GetComponent<GUIManager>().ShowGameOver();
+    }
 }
